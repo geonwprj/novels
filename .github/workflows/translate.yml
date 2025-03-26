@@ -33,8 +33,9 @@ jobs:
       run: |
         for file in processing/*; do
           if [ -f "$file" ]; then
-            output_path, success=$$(python translate.py "$file")
-            if [ "$$success" == "true" ]; then
+            output=$$(python translate.py "$file")
+            read output_path success <<< "$$output"
+            if [ "$$success" == "True" ]; then
               echo "Successfully processed $file, output at $$output_path"
               rm "$file"  # Remove processed file
             else
