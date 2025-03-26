@@ -35,9 +35,12 @@ jobs:
         DELETED_FILES=""
         for file in processing/*; do
           if [ -f "$file" ]; then
+            # Capture output and split into array
             output=$(python translate.py "$file")
             read -r -a parts <<< "$output"
-            if [ "${parts[1]}" == "True" ]; then
+            
+            # Check success status (assuming second element is "True"/"False")
+            if [ "${parts[1]}" = "True" ]; then
               echo "Successfully processed $file, output at ${parts[0]}"
               rm "$file"
               DELETED_FILES="$DELETED_FILES $file"
@@ -47,7 +50,7 @@ jobs:
             fi
           fi
         done
-        
+
     - name: Configure Git
       run: |
         git config --local user.email "actions@github.com"
