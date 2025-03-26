@@ -47,7 +47,7 @@ jobs:
             fi
           fi
         done
-
+        
     - name: Configure Git
       run: |
         git config --local user.email "actions@github.com"
@@ -64,9 +64,3 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: books
         force: true
-
-    # - name: Delete processed JSON file # Removed separate delete step
-    #   run: |
-    #     git rm "$file"
-    #     git commit -m "Delete processed JSON file" || echo "No changes to commit"
-    #     git push origin books
