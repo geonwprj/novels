@@ -35,8 +35,8 @@ jobs:
         DELETED_FILES="" # Initialize variable to track deleted files
         for file in processing/*; do
           if [ -f "$file" ]; then
-            output=`python translate.py "$file"`
-            read output_path success <<< "$$output"
+            output=$(python translate.py "$file")
+            read output_path success <<< "$output"
             if [ "$$success" == "True" ]; then
               echo "Successfully processed $file, output at $output_path"
               rm "$file" # Remove local file after successful processing
