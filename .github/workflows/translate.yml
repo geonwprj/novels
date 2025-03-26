@@ -2,6 +2,8 @@ name: Translation Processing
 
 on:
   push:
+    branches:
+      - books
     paths:
       - 'processing/**'
 
@@ -31,13 +33,29 @@ jobs:
       run: |
         for file in processing/*; do
           if [ -f "$file" ]; then
-            python translate.py "$file"
-            if [ $? -eq 0 ]; then
-              echo "Successfully processed $file"
+            output_path, success=$$(python translate.py "$file")
+            if [ "$$success" == "true" ]; then
+              echo "Successfully processed $file, output at $$output_path"
               rm "$file"  # Remove processed file
             else
               echo "Failed to process $file"
             fi
           fi
         done
-    
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+
+    - name: Add and Commit changes
+      run: |
+        git add "$output_path"
+        git commit -m "Add translated HTML file" || echo "No changes to commit"
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: pages
+        force: true

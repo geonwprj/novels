@@ -124,7 +124,7 @@ class TranslationProcessor:
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(rendered)
         
-        return len(self.failed_chunks) == 0
+        return str(output_file), len(self.failed_chunks) == 0
 
 if __name__ == "__main__":
     import sys
