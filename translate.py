@@ -123,7 +123,7 @@ class TranslationProcessor:
             print(f"Writing output file: {output_file}") # LOGGING
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(rendered)
-        
+        return f"{str(output_file)} {str(len(self.failed_chunks) == 0)}"
         return str(output_file), len(self.failed_chunks) == 0
 
 if __name__ == "__main__":

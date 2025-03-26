@@ -31,12 +31,20 @@ jobs:
 
     - name: Process files
       run: |
+        OUTPUT_PATHS=""
+        DELETED_FILES=""
         for file in processing/*; do
           if [ -f "$file" ]; then
-            output_path, success=$$(python translate.py "$file")
-            if [ "$$success" == "true" ]; then
-              echo "Successfully processed $file, output at $$output_path"
-              rm "$file"  # Remove processed file
+            # Capture output and split into array
+            output=$(python translate.py "$file")
+            read -r -a parts <<< "$output"
+            
+            # Check success status (assuming second element is "True"/"False")
+            if [ "${parts[1]}" = "True" ]; then
+              echo "Successfully processed $file, output at ${parts[0]}"
+              rm "$file"
+              DELETED_FILES="$DELETED_FILES $file"
+              OUTPUT_PATHS="$OUTPUT_PATHS ${parts[0]}"
             else
               echo "Failed to process $file"
             fi
@@ -50,12 +58,12 @@ jobs:
 
     - name: Add and Commit changes
       run: |
-        git add "$output_path"
-        git commit -m "Add translated HTML file" || echo "No changes to commit"
+        git add "$OUTPUT_PATHS" "$DELETED_FILES" # Add generated HTML and remove JSON files
+        git commit -m "Add translated HTML files and delete processed JSON files" || echo "No changes to commit"
 
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: pages
+        branch: books
         force: true
