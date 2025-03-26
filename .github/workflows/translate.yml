@@ -32,16 +32,16 @@ jobs:
     - name: Process files
       run: |
         OUTPUT_PATHS=""
-        DELETED_FILES="" # Initialize variable to track deleted files
+        DELETED_FILES=""
         for file in processing/*; do
           if [ -f "$file" ]; then
             output=$(python translate.py "$file")
-            read output_path success <<< "$output"
-            if [ "$$success" == "True" ]; then
-              echo "Successfully processed $file, output at $output_path"
-              rm "$file" # Remove local file after successful processing
-              DELETED_FILES="$DELETED_FILES $file" # Track file for deletion from repo
-              OUTPUT_PATHS="$OUTPUT_PATHS $$output_path" # Append output path to list
+            read -r -a parts <<< "$output"
+            if [ "${parts[1]}" == "True" ]; then
+              echo "Successfully processed $file, output at ${parts[0]}"
+              rm "$file"
+              DELETED_FILES="$DELETED_FILES $file"
+              OUTPUT_PATHS="$OUTPUT_PATHS ${parts[0]}"
             else
               echo "Failed to process $file"
             fi
@@ -55,7 +55,7 @@ jobs:
 
     - name: Add and Commit changes
       run: |
-        git add $$OUTPUT_PATHS $$DELETED_FILES # Add generated HTML and remove JSON files
+        git add "$OUTPUT_PATHS" "$DELETED_FILES" # Add generated HTML and remove JSON files
         git commit -m "Add translated HTML files and delete processed JSON files" || echo "No changes to commit"
 
     - name: Push changes
