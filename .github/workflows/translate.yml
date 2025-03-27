@@ -51,18 +51,26 @@ jobs:
             bookid="${BASH_REMATCH[2]}"
             index="${BASH_REMATCH[3]}"
             
-            # Pass components to translation script
-            output=$(python translate.py "$file" "$source" "$bookid" "$index")
-            read -r -a parts <<< "$output"
+            # Pass file to translation script with error handling
+            set +e
+            output=$(python translate.py "$file" 2>&1)
+            exit_code=$?
+            set -e
             
-            # Check success status
-            if [ "${parts[1]}" = "True" ]; then
-              echo "Successfully processed $file, output at ${parts[0]}"
-              rm "$file"
-              DELETED_FILES="$DELETED_FILES $file"
-              OUTPUT_PATHS="$OUTPUT_PATHS ${parts[0]}"
+            if [ $exit_code -eq 0 ]; then
+              read -r -a parts <<< "$output"
+              # Check success status
+              if [ "${parts[1]}" = "True" ]; then
+                echo "Successfully processed $file, output at ${parts[0]}"
+                rm "$file"
+                DELETED_FILES="$DELETED_FILES $file"
+                OUTPUT_PATHS="$OUTPUT_PATHS ${parts[0]}"
+              else
+                echo "Failed to process $file: ${output}"
+              fi
             else
-              echo "Failed to process $file"
+              echo "Error processing $file: ${output}"
+              exit $exit_code
             fi
           else
             echo "Skipping $file - filename pattern mismatch"
