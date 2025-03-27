@@ -58,20 +58,18 @@ jobs:
             set -e
             
             if [ $exit_code -eq 0 ]; then
-              read -r -a parts <<< "$output"
-              # Check success status
-              if [ "${parts[1]}" = "True" ]; then
-                echo "Successfully processed $file, output at ${parts[0]}"
+              # Check if output contains success indicators
+              if echo "$output" | grep -q "Writing output file"; then
+                output_file=$(echo "$output" | grep "Writing output file" | awk '{print $NF}')
+                echo "Successfully processed $file, output at $output_file"
+                rm "$file"
                 rm "$file"
                 DELETED_FILES="$DELETED_FILES $file"
-                OUTPUT_PATHS="$OUTPUT_PATHS ${parts[0]}"
+                OUTPUT_PATHS="$OUTPUT_PATHS $output_file"
               else
-                echo "Failed to process $file: ${output}"
+                echo "Failed to process $file: No output file created"
+                exit 1
               fi
-              
-              # Debug output
-              echo "DELETED_FILES: $DELETED_FILES"
-              echo "OUTPUT_PATHS: $OUTPUT_PATHS"
             else
               echo "Error processing $file: ${output}"
               exit $exit_code
