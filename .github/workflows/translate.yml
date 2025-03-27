@@ -68,6 +68,10 @@ jobs:
               else
                 echo "Failed to process $file: ${output}"
               fi
+              
+              # Debug output
+              echo "DELETED_FILES: $DELETED_FILES"
+              echo "OUTPUT_PATHS: $OUTPUT_PATHS"
             else
               echo "Error processing $file: ${output}"
               exit $exit_code
@@ -84,8 +88,13 @@ jobs:
 
     - name: Add and Commit changes
       run: |
-        git add "$OUTPUT_PATHS" "$DELETED_FILES" # Add generated HTML and remove JSON files
-        git commit -m "Add translated HTML files and delete processed JSON files" || echo "No changes to commit"
+        # Check if there are any changes to commit
+        if [ -n "$OUTPUT_PATHS" ] || [ -n "$DELETED_FILES" ]; then
+          git add "$OUTPUT_PATHS" "$DELETED_FILES" # Add generated HTML and remove JSON files
+          git commit -m "Add translated HTML files and delete processed JSON files"
+        else
+          echo "No changes to commit - skipping git operations"
+        fi
 
     - name: Push changes
       uses: ad-m/github-push-action@master
