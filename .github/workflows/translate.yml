@@ -65,7 +65,7 @@ jobs:
                 echo "Successfully processed $file, output at $output_file"
                 
                 # Stage the generated file
-                git add "$output_file"
+                git add -f "$output_file"
                 
                 # Remove and stage the deletion of the processed file
                 git rm "$file"
