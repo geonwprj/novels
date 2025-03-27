@@ -63,7 +63,6 @@ jobs:
                 output_file=$(echo "$output" | grep "Writing output file" | awk '{print $NF}')
                 echo "Successfully processed $file, output at $output_file"
                 rm "$file"
-                rm "$file"
                 DELETED_FILES="$DELETED_FILES $file"
                 OUTPUT_PATHS="$OUTPUT_PATHS $output_file"
               else
