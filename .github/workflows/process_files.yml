@@ -1,0 +1,120 @@
+name: Manual File Processing
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Comma-separated list of files in processing/ folder to process'
+        required: true
+        type: string
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    env:
+      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      LLM_PROMPT: ${{ secrets.LLM_PROMPT }}
+      LLM_TOKEN: ${{ secrets.LLM_TOKEN }}
+      LLM_URL: ${{ secrets.LLM_URL }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        ref: books
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Process specified files
+      id: process-files
+      run: |
+        OUTPUT_PATHS=""
+        DELETED_FILES=""
+        
+        # Convert comma-separated input to array
+        IFS=',' read -r -a FILES <<< "${{ inputs.files }}"
+        
+        for file in "${FILES[@]}"; do
+          # Prepend processing/ if not already present
+          if [[ ! "$file" =~ ^processing/ ]]; then
+            file="processing/$file"
+          fi
+          
+          # Verify file exists
+          if [ ! -f "$file" ]; then
+            echo "File $file does not exist"
+            continue
+          fi
+          
+          # Extract filename components using regex
+          if [[ "$(basename "$file")" =~ ^([a-zA-Z0-9]+)-([0-9]+)-([0-9]+)\.json$ ]]; then
+            source="${BASH_REMATCH[1]}"
+            bookid="${BASH_REMATCH[2]}"
+            index="${BASH_REMATCH[3]}"
+            
+            # Pass file to translation script with error handling
+            set +e
+            output=$(python translate.py "$file" 2>&1)
+            exit_code=$?
+            set -e
+            
+            if [ $exit_code -eq 0 ]; then
+              # Check if output contains success indicators
+              if echo "$output" | grep -q "Writing output file"; then
+                output_file=$(echo "$output" | grep "Writing output file" | awk '{print $NF}')
+                echo "Successfully processed $file, output at $output_file"
+                
+                # Stage the generated file
+                git add -f "$output_file"
+                
+                # Remove and stage the deletion of the processed file
+                git rm "$file"
+                
+                DELETED_FILES="$DELETED_FILES $file"
+                OUTPUT_PATHS="$OUTPUT_PATHS $output_file"
+              else
+                echo "Failed to process $file: No output file created"
+                exit 1
+              fi
+            else
+              echo "Error processing $file: ${output}"
+              exit $exit_code
+            fi
+          else
+            echo "Skipping $file - filename pattern mismatch"
+          fi
+        done
+        
+        # Set outputs for subsequent steps
+        echo "output_paths=${OUTPUT_PATHS}" >> $GITHUB_OUTPUT
+        echo "deleted_files=${DELETED_FILES}" >> $GITHUB_OUTPUT
+        
+        # Fail if no files were processed
+        if [ -z "$OUTPUT_PATHS" ] && [ -z "$DELETED_FILES" ]; then
+          echo "::error::No changes to commit - failing workflow"
+          exit 1
+        fi
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+
+    - name: Commit and push changes
+      run: |
+        git commit -m "Add processed HTML files and delete processed JSON files"
+        git push
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: books
+        force: true
