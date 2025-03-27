@@ -31,12 +31,13 @@ jobs:
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v41
+      uses: tj-actions/changed-files@v46.0.1
       with:
         files: |
           processing/**.json
     
-    - name: Process files
+    - name: Process and stage files
+      id: process-files
       run: |
         OUTPUT_PATHS=""
         DELETED_FILES=""
@@ -62,7 +63,13 @@ jobs:
               if echo "$output" | grep -q "Writing output file"; then
                 output_file=$(echo "$output" | grep "Writing output file" | awk '{print $NF}')
                 echo "Successfully processed $file, output at $output_file"
-                rm "$file"
+                
+                # Stage the generated file
+                git add "$output_file"
+                
+                # Remove and stage the deletion of the processed file
+                git rm "$file"
+                
                 DELETED_FILES="$DELETED_FILES $file"
                 OUTPUT_PATHS="$OUTPUT_PATHS $output_file"
                 # Debug output
@@ -80,21 +87,26 @@ jobs:
             echo "Skipping $file - filename pattern mismatch"
           fi
         done
+        
+        # Set outputs for subsequent steps
+        echo "output_paths=${OUTPUT_PATHS}" >> $GITHUB_OUTPUT
+        echo "deleted_files=${DELETED_FILES}" >> $GITHUB_OUTPUT
+        
+        # Fail if no files were processed
+        if [ -z "$OUTPUT_PATHS" ] && [ -z "$DELETED_FILES" ]; then
+          echo "::error::No changes to commit - failing workflow"
+          exit 1
+        fi
 
     - name: Configure Git
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "GitHub Actions"
 
-    - name: Add and Commit changes
+    - name: Commit and push changes
       run: |
-        # Check if there are any changes to commit
-        if [ -n "$OUTPUT_PATHS" ] || [ -n "$DELETED_FILES" ]; then
-          git add "$OUTPUT_PATHS" "$DELETED_FILES" # Add generated HTML and remove JSON files
-          git commit -m "Add translated HTML files and delete processed JSON files"
-        else
-          echo "No changes to commit - skipping git operations"
-        fi
+        git commit -m "Add translated HTML files and delete processed JSON files"
+        git push
 
     - name: Push changes
       uses: ad-m/github-push-action@master
