@@ -4,3 +4,4 @@ processing/*.json
 .venv/
 .env
 __pycache__/
+translate.sh
