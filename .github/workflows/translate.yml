@@ -65,6 +65,9 @@ jobs:
                 rm "$file"
                 DELETED_FILES="$DELETED_FILES $file"
                 OUTPUT_PATHS="$OUTPUT_PATHS $output_file"
+                # Debug output
+                echo "DELETED_FILES: $DELETED_FILES"
+                echo "OUTPUT_PATHS: $OUTPUT_PATHS"
               else
                 echo "Failed to process $file: No output file created"
                 exit 1
