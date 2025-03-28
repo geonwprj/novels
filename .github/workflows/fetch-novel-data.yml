@@ -1,0 +1,32 @@
+name: Fetch Novel Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      novelsite:
+        description: 'The novel site identifier'
+        required: true
+        type: string
+      bookid:
+        description: 'The book ID'
+        required: true
+        type: string
+      index:
+        description: 'The index of the content'
+        required: true
+        type: string
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print API URL
+        run: |
+          echo "API URL: https://rapid-cell-0ef1.fpzw5pvb5j.workers.dev/v1/${{ github.event.inputs.novelsite }}/books/${{ github.event.inputs.bookid }}/${{ github.event.inputs.index }}"
+      
+      - name: Fetch novel data
+        id: fetch
+        run: |
+          response=$(curl -s -X GET "https://rapid-cell-0ef1.fpzw5pvb5j.workers.dev/v1/${{ github.event.inputs.novelsite }}/books/${{ github.event.inputs.bookid }}/${{ github.event.inputs.index }}")
+          echo "$response" | jq .
+          echo "::set-output name=response::$response"
