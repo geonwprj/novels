@@ -7,6 +7,11 @@ on:
     paths:
       - 'processing/**.json'
 
+# Add this concurrency block to prevent parallel runs ⬇️
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}  # Unique group per workflow + branch
+  cancel-in-progress: false  # New runs will WAIT for existing ones to finish
+
 jobs:
   translate:
     runs-on: ubuntu-latest
