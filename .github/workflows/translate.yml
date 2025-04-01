@@ -112,7 +112,18 @@ jobs:
             exit $exit_code
           fi
         done
-        
+
+    - name: Configure Git
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        cd books-repo
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+        cd ../pages-repo
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+                
     - name: Commit changes to books branch
       working-directory: books-repo
       run: |
@@ -162,17 +173,6 @@ jobs:
           exit 1
         fi
 
-    - name: Configure Git
-      run: |
-        git config --global user.email "actions@github.com"
-        git config --global user.name "GitHub Actions"
-        cd books-repo
-        git config user.email "actions@github.com"
-        git config user.name "GitHub Actions"
-        cd ../pages-repo
-        git config user.email "actions@github.com"
-        git config user.name "GitHub Actions"
-        
     - name: Push changes to both branches
       run: |
         # Push books branch
