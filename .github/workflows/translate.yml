@@ -159,10 +159,26 @@ jobs:
 
     - name: Push changes to both branches
       run: |
-        # Push books branch
+        # Push books branch safely
         cd books-repo
-        git push origin books
+        echo "Ensuring local repository is up-to-date"
+        git pull --rebase origin books
+        if git push origin books; then
+          echo "Successfully pushed books branch"
+        else
+          echo "::error::Failed to push books branch"
+          echo "This usually means there are conflicting changes that need manual resolution"
+          exit 1
+        fi
         
-        # Push pages branch
+        # Push pages branch safely
         cd ../pages-repo
-        git push origin pages
+        echo "Ensuring local repository is up-to-date"
+        git pull --rebase origin pages
+        if git push origin pages; then
+          echo "Successfully pushed pages branch"
+        else
+          echo "::error::Failed to push pages branch"
+          echo "This usually means there are conflicting changes that need manual resolution"
+          exit 1
+        fi
