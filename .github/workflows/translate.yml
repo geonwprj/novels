@@ -125,20 +125,25 @@ jobs:
     - name: Commit changes to pages branch
       working-directory: pages-repo
       run: |
-        # Add all changes
-        git add .
+        # Add HTML files explicitly
+        find . -name '*.html' -exec git add {} +
         
-        # Check if there are any changes to commit
-        if git diff-index --quiet HEAD --; then
+        # Check for staged changes
+        if git diff --cached --quiet; then
           echo "No changes to commit"
         else
           git commit -m "Add generated HTML files"
+          echo "Changes committed successfully"
         fi
         
-        # Verify if any HTML files were generated
-        if [ -z "$(find . -name '*.html')" ]; then
-          echo "::error::No HTML files generated"
+        # Verify if any HTML files exist
+        html_files=$(find . -name '*.html')
+        if [ -z "$html_files" ]; then
+          echo "::error::No HTML files found in pages-repo"
           exit 1
+        else
+          echo "Generated HTML files:"
+          echo "$html_files"
         fi
         
         # Set outputs for subsequent steps
@@ -161,6 +166,12 @@ jobs:
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
+        cd books-repo
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+        cd ../pages-repo
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
         
     - name: Push changes to both branches
       run: |
