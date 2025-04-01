@@ -166,9 +166,3 @@ jobs:
         # Push pages branch
         cd ../pages-repo
         git push origin pages
-
-    - name: Add workflow prerequisites
-      uses: EndBug/add-and-commit@v9
-      with:
-        add: '.github/workflows/translate.yml'
-        message: 'Update translation workflow'
