@@ -147,14 +147,14 @@ jobs:
           echo "Changes committed successfully"
         fi
         
-        # Verify if any HTML files exist
-        html_files=$(find . -name '*.html')
-        if [ -z "$html_files" ]; then
-          echo "::error::No HTML files found in pages-repo"
-          exit 1
+        # Verify changes were successfully committed
+        if ! git diff --quiet HEAD^ HEAD; then
+          echo "Successfully committed changes"
+          echo "Committed HTML files:"
+          git show --name-only --pretty=format: HEAD
         else
-          echo "Generated HTML files:"
-          echo "$html_files"
+          echo "::error::Failed to commit changes"
+          exit 1
         fi
         
         # Set outputs for subsequent steps
