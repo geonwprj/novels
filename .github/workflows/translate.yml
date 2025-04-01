@@ -115,16 +115,32 @@ jobs:
         git commit -m "Add translated HTML files and delete processed JSON files"
         git push
 
+    - name: Stage HTML files for pages branch
+      run: |
+        # Create temporary directory for HTML files
+        mkdir -p /tmp/html_files
+        # Move generated HTML files to temporary directory
+        for file in ${{ steps.process-files.outputs.output_paths }}; do
+          mv "$file" /tmp/html_files/
+        done
+
     - name: Push HTML to pages branch
       run: |
         max_retries=3
         retry_wait=5
         attempt=0
         while [ $attempt -lt $max_retries ]; do
+          # Switch to pages branch
           git checkout pages || git checkout -b pages
           git pull origin pages || true
+          
+          # Move HTML files from temporary location
+          mv /tmp/html_files/* .
+          
+          # Add and commit changes
           git add .
           git commit -m "Add translated HTML files" || true
+          
           if git push origin pages; then
             break
           fi
@@ -146,7 +162,11 @@ jobs:
           git checkout books
           git pull origin books
           for file in ${{ steps.process-files.outputs.deleted_files }}; do
-            git rm "$file"
+            if [ -f "$file" ]; then
+              git rm "$file"
+            else
+              echo "File $file not found, skipping removal"
+            fi
           done
           git commit -m "Remove processed JSON files" || true
           git pull --rebase origin books
