@@ -1,8 +1,8 @@
 name: Translation Processing
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
       run: |
         cd books-repo
         # Get files changed in the current commit
-        changed_files=$(git diff --name-only HEAD^ HEAD -- processing/*.json)
+        changed_files=$(git diff --name-only ${{ github.sha }}^ ${{ github.sha }} -- processing/*.json)
         if [ -z "$changed_files" ]; then
           echo "No JSON files changed in this commit"
           exit 0
@@ -77,7 +77,7 @@ jobs:
             continue
           fi
           
-          echo "Processing file: $file"
+          echo "Processing file: $file from commit ${{ github.sha }}"
           
           # Process file individually
           set +e
