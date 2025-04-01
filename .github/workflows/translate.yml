@@ -156,22 +156,6 @@ jobs:
           echo "::error::Failed to commit changes"
           exit 1
         fi
-        
-        # Set outputs for subsequent steps
-        echo "output_paths=${OUTPUT_PATHS}" >> $GITHUB_OUTPUT
-        echo "deleted_files=${DELETED_FILES}" >> $GITHUB_OUTPUT
-        
-        # Fail if no files were processed
-        if [ -z "$OUTPUT_PATHS" ] && [ -z "$DELETED_FILES" ]; then
-          echo "::error::No changes to commit - failing workflow"
-          exit 1
-        fi
-        
-        # Fail if no files were processed
-        if [ -z "$OUTPUT_PATHS" ] && [ -z "$DELETED_FILES" ]; then
-          echo "::error::No changes to commit - failing workflow"
-          exit 1
-        fi
 
     - name: Push changes to both branches
       run: |
