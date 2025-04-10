@@ -87,8 +87,7 @@ jobs:
           
           if [ $exit_code -eq 0 ]; then
             # Get generated file path from output
-            generated_file=$(echo "$output" | grep "Writing output file" | awk -F': ' '{print $2}' | awk '{print $1}')
-            
+            generated_file=$(echo "$output" | grep 'GENERATED_FILE:' | cut -d':' -f2-)
             if [ -z "$generated_file" ]; then
               echo "::error::Could not determine generated file path"
               exit 1

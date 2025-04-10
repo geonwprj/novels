@@ -27,8 +27,10 @@ class TranslationProcessor:
         self.template_env = jinja2.Environment(loader=self.template_loader)
         self.successful_chunks = []
         self.original_line_count = 0
+        self.original_content = ""
         self.source, self.bookid, self.index = self.parse_filename(input_file)
-        
+        self.generated_file = None
+
     def parse_filename(self, filename: str) -> tuple[str, str, str]:
         parts = Path(filename).stem.split('-')
         return parts[0], parts[1], parts[2]
@@ -49,6 +51,7 @@ class TranslationProcessor:
     def split_content(self, content: str) -> List[Tuple[str, List[int]]]:
         lines = content.split('\n')
         self.original_line_count = len(lines)
+        self.original_content = content
         return [
             ('\n'.join(lines[i:i + INITIAL_CHUNK_LINES]), [i // INITIAL_CHUNK_LINES + 1])
             for i in range(0, len(lines), INITIAL_CHUNK_LINES)
@@ -113,26 +116,48 @@ class TranslationProcessor:
                 return False
         return True
     
+    def save_debug_files(self, original: str, translated: str):
+        debug_dir = Path("test")
+        debug_dir.mkdir(exist_ok=True)
+        timestamp = int(time.time())
+        filestem = Path(self.input_file).stem
+        
+        original_path = debug_dir / f"original_{filestem}_{timestamp}.txt"
+        translated_path = debug_dir / f"translated_{filestem}_{timestamp}.txt"
+        
+        original_path.write_text(original, encoding="utf-8")
+        translated_path.write_text(translated, encoding="utf-8")
+        logging.info(f"Debug files saved: {original_path}, {translated_path}")
+
     def validate_completion(self) -> bool:
-        translated_lines = sum(len(chunk.split('\n')) for _, chunk in self.successful_chunks)
-        if (translated_lines / self.original_line_count < 0.8) or (translated_lines / self.original_line_count > 1.2):
-            logging.error(f"Content incomplete: Original {self.original_line_count} vs Translated {translated_lines} lines")
-            return False
+        sorted_chunks = sorted(self.successful_chunks, key=lambda x: x[0])
+        translated_content = '\n'.join([chunk for _, chunk in sorted_chunks])
+        translated_lines = len(translated_content.split('\n'))
+        
+        if translated_lines != self.original_line_count:
+            self.save_debug_files(self.original_content, translated_content)
+            allowed_diff = int(0.1 * self.original_line_count)
+            
+            if abs(translated_lines - self.original_line_count) > allowed_diff:
+                logging.error(f"Line count difference >10%: Original {self.original_line_count} vs {translated_lines}")
+                return False
+            logging.warning(f"Line count difference within 10%: {self.original_line_count} vs {translated_lines}")
         return True
-    
-    def process_file(self) -> bool:
+
+    def process_file(self) -> Optional[str]:
         with open(self.input_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
+            self.original_content = data['content']
 
         chunks = self.split_content(data['content'])
         for chunk, indices in chunks:
             if not self.process_chunk(chunk, indices):
                 logging.error("Aborting due to failed chunk")
-                return False
+                return None
 
         if not self.validate_completion():
             logging.error("Content validation failed")
-            return False
+            return None
 
         book_dir = Path(re.sub(r'[^\w_\-]', '_', data['book']))
         book_dir.mkdir(parents=True, exist_ok=True)
@@ -148,11 +173,11 @@ class TranslationProcessor:
             book=data['book']
         )
         
-        output_file = book_dir / f"{int(self.index):04d}.html"
-        with open(output_file, 'w', encoding='utf-8') as f:
+        self.generated_file = book_dir / f"{int(self.index):04d}.html"
+        with open(self.generated_file, 'w', encoding='utf-8') as f:
             f.write(rendered)
         
-        return True
+        return str(self.generated_file)
 
 if __name__ == "__main__":
     import sys
@@ -161,5 +186,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     processor = TranslationProcessor(sys.argv[1])
-    success = processor.process_file()
-    sys.exit(0 if success else 1)
+    result = processor.process_file()
+    if result:
+        print(f"GENERATED_FILE:{result}")
+        sys.exit(0)
+    else:
+        sys.exit(1)
