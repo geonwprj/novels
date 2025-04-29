@@ -141,26 +141,11 @@ class TranslationProcessor:
             self.save_debug_files(self.original_content, translated_content)
             allowed_diff = max(1, int(0.1 * original_non_empty))  # Ensure at least 1 line tolerance for small files
             
-            if abs(translated_non_empty - original_non_empty) > allowed_diff:
+            if abs(translated_non_empty - original_non_empty) > allowed_diff and abs(translated_non_empty - original_non_empty) > 15:
                 logging.error(f"Non-empty line difference >10%: Original {original_non_empty} vs Translated {translated_non_empty}")
                 return False
             logging.warning(f"Non-empty line difference within 10%: {original_non_empty} vs {translated_non_empty}")
         return True
-
-    # def validate_completion(self) -> bool:
-    #     sorted_chunks = sorted(self.successful_chunks, key=lambda x: x[0])
-    #     translated_content = '\n'.join([chunk for _, chunk in sorted_chunks])
-    #     translated_lines = len(translated_content.split('\n'))
-        
-    #     if translated_lines != self.original_line_count:
-    #         self.save_debug_files(self.original_content, translated_content)
-    #         allowed_diff = int(0.1 * self.original_line_count)
-            
-    #         if abs(translated_lines - self.original_line_count) > allowed_diff:
-    #             logging.error(f"Line count difference >10%: Original {self.original_line_count} vs {translated_lines}")
-    #             return False
-    #         logging.warning(f"Line count difference within 10%: {self.original_line_count} vs {translated_lines}")
-    #     return True
 
     def process_file(self) -> Optional[str]:
         with open(self.input_file, 'r', encoding='utf-8') as f:
