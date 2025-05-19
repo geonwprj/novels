@@ -12,10 +12,11 @@ jobs:
   process:
     runs-on: ubuntu-latest
     env:
-      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
       LLM_PROMPT: ${{ secrets.LLM_PROMPT }}
       LLM_TOKEN: ${{ secrets.LLM_TOKEN }}
-      LLM_URL: ${{ secrets.LLM_URL }}
+      LLM_URL: ${{ vars.LLM_URL }}
+      LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
