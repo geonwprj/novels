@@ -12,7 +12,7 @@ load_dotenv()
 MAX_RETRIES = 5
 RETRY_DELAY = 5
 MAX_CHUNK_SIZE = 500
-INITIAL_CHUNK_LINES = 100
+INITIAL_CHUNK_LINES = 50
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,23 +70,50 @@ class TranslationProcessor:
         llm_prompt = os.environ.get('LLM_PROMPT')
         llm_token = os.environ.get('LLM_TOKEN')
         llm_url = os.environ.get('LLM_URL')
+        llm_provider = os.environ.get('LLM_PROVIDER')
 
         if not all([llm_model, llm_prompt, llm_token, llm_url]):
             logging.error("Missing LLM configuration")
             return None
 
         import requests
-        headers = {'Authorization': f'Bearer {llm_token}', 'Content-Type': 'application/json'}
-        data = {
-            "model": llm_model,
-            "messages": [{"role": "user", "content": f"{llm_prompt}\n\n{chunk}"}],
-            "stream": False,
-        }
+
+        if llm_provider == 'gemini':
+            headers = {'Content-Type': 'application/json'}
+            data = {
+                    "contents": [
+                    {
+                        "parts": [
+                        {
+                            "text": f"{llm_prompt}\n\n{chunk}"
+                        }
+                        ]
+                    }
+                    ]
+                }
+            url = f"{llm_url.rstrip('/')}/v1beta/models/{llm_model}:generateContent?key={llm_token}"
+        else:
+            headers = {'Authorization': f'Bearer {llm_token}', 'Content-Type': 'application/json'}
+            data = {
+                "model": llm_model,
+                "messages": [{"role": "user", "content": f"{llm_prompt}\n\n{chunk}"}],
+                "stream": False,
+            }
+            url = f"{llm_url.rstrip('/')}/chat/completions"
 
         try:
-            response = requests.post(f"{llm_url.rstrip('/')}/chat/completions", headers=headers, json=data)
+            response = requests.post(url, headers=headers, json=data)
             response.raise_for_status()
-            translated = response.json()['choices'][0]['message']['content']
+            if llm_provider == 'gemini':
+    #               "candidates": [
+    # {
+    #   "content": {
+    #     "parts": [
+    #       {
+    #         "text":
+                translated = response.json()['candidates'][0]['content']['parts'][0]['text']
+            else:
+                translated = response.json()['choices'][0]['message']['content']
             
             if not translated.strip():
                 raise ValueError("Received empty translation")
@@ -132,19 +159,38 @@ class TranslationProcessor:
     def validate_completion(self) -> bool:
         sorted_chunks = sorted(self.successful_chunks, key=lambda x: x[0])
         translated_content = '\n'.join([chunk for _, chunk in sorted_chunks])
-        
-        # Count non-empty lines in original and translated content
-        original_non_empty = sum(1 for line in self.original_content.split('\n') if line.strip())
-        translated_non_empty = sum(1 for line in translated_content.split('\n') if line.strip())
-        
-        if translated_non_empty != original_non_empty:
+
+        # Count non-empty lines and characters in original and translated content
+        original_non_empty_lines = sum(1 for line in self.original_content.split('\n') if line.strip())
+        translated_non_empty_lines = sum(1 for line in translated_content.split('\n') if line.strip())
+        original_char_count = len(self.original_content)
+        translated_char_count = len(translated_content)
+
+        line_diff_within_tolerance = True
+        if original_non_empty_lines != translated_non_empty_lines:
+            allowed_line_diff = max(1, int(0.1 * original_non_empty_lines)) # Ensure at least 1 line tolerance for small files
+            if abs(translated_non_empty_lines - original_non_empty_lines) > allowed_line_diff and abs(translated_non_empty_lines - original_non_empty_lines) > 15:
+                line_diff_within_tolerance = False
+                logging.warning(f"Non-empty line difference outside 10% tolerance: Original {original_non_empty_lines} vs Translated {translated_non_empty_lines}")
+            else:
+                 logging.warning(f"Non-empty line difference within 10% tolerance: {original_non_empty_lines} vs {translated_non_empty_lines}")
+
+        char_diff_within_tolerance = True
+        if not line_diff_within_tolerance:
+            if original_char_count != translated_char_count:
+                allowed_char_diff = int(0.1 * original_char_count)
+                if abs(translated_char_count - original_char_count) > allowed_char_diff:
+                    char_diff_within_tolerance = False
+                    logging.warning(f"Character count difference outside 10% tolerance: Original {original_char_count} vs Translated {translated_char_count}")
+                else:
+                    logging.warning(f"Character count difference within 10% tolerance: {original_char_count} vs {translated_char_count}")
+
+        if not line_diff_within_tolerance and not char_diff_within_tolerance:
             self.save_debug_files(self.original_content, translated_content)
-            allowed_diff = max(1, int(0.1 * original_non_empty))  # Ensure at least 1 line tolerance for small files
-            
-            if abs(translated_non_empty - original_non_empty) > allowed_diff and abs(translated_non_empty - original_non_empty) > 15:
-                logging.error(f"Non-empty line difference >10%: Original {original_non_empty} vs Translated {translated_non_empty}")
-                return False
-            logging.warning(f"Non-empty line difference within 10%: {original_non_empty} vs {translated_non_empty}")
+            logging.error("Content validation failed: Both line count and character count differences are outside tolerance.")
+            return False
+
+        logging.info("Content validation passed.")
         return True
 
     def process_file(self) -> Optional[str]:
