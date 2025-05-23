@@ -76,7 +76,6 @@ def process_novel_translation(input_path):
     translator = Translate(llm, llmsys)
 
     # Run the process with the sample file
-    print("\n--- Running translation process with sample file ---", file=sys.stderr)
     output_file = translator.run(input_path)
 
     if output_file:
