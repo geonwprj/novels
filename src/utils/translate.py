@@ -215,7 +215,7 @@ class Translate:
             except Exception as e:
                 # Catch other potential exceptions from the LLM call
                 print(f"Error during LLM call: {e}", file=sys.stderr)
-                if "504 Server Error:" in str(e).lower():
+                if "504 Server Error:".lower() in str(e).lower():
                     print("Error message indicates token limit.", file=sys.stderr)
                     return "TOKEN_EXCEEDED", None
                 else:
@@ -232,7 +232,7 @@ class Translate:
             Returns:
                 str or None: The translated text or None if failed.
             """
-            # print(f"len(text): {len(text)}, lines: {len(text.splitlines())}", file=sys.stderr)
+            print(f"len(text): {len(text)}, lines: {len(text.splitlines())}", file=sys.stderr)
             error, result = call_llm(text)
             if error == "TOKEN_EXCEEDED":
                 print("Token limit exceeded. Splitting content and retrying parts.", file=sys.stderr)
