@@ -37,19 +37,19 @@ class Llm:
             raise ValueError(f"Unsupported provider: {provider}. Supported providers are: {supported_providers}")
 
         self.provider = provider.lower()
-        self.url = url if url is not None else DEFAULT_URLS[self.provider]
+        self.url = url if url is not None or url == '' else DEFAULT_URLS[self.provider]
 
         # Note: API keys are typically handled via environment variables
         # or passed securely. For this example, we'll look for env vars.
         self._api_key = token # This is the token for the LLM, not the API key
-        if token is None:
+        if token is None or token == '':
             self._api_key = os.environ.get(f"{self.provider.upper()}_API_KEY")
             if not self._api_key and self.provider in ["openai", "gemini"]:
                 print(f"Warning: {self.provider.upper()}_API_KEY environment variable not found. API calls may fail.")
 
         # Store the default model for the provider, can be overridden in run/prepare_payload
         self._default_model = model
-        if model is None:
+        if model is None or model == '':
             self._default_model = DEFAULT_MODELS.get(self.provider, "unknown")
         
         if self.provider == 'openai':
