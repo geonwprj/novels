@@ -82,7 +82,7 @@ jobs:
           
           # Process file individually
           set +e
-          output=$(python translate.py "$file" 2>&1)
+          output=$(python ./src/app.py "$file" 2>&1)
           exit_code=$?
           set -e
           
