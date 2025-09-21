@@ -22,7 +22,13 @@ jobs:
     - name: Build RSS feed
       run: |
         # Find the novel name from the path of the changed file
-        changed_file=$(git diff --name-only HEAD~1 HEAD | head -n 1)
+        if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+          # More than one commit, use git diff
+          changed_file=$(git diff --name-only HEAD~1 HEAD | head -n 1)
+        else
+          # First commit, use git show
+          changed_file=$(git show --pretty="" --name-only | head -n 1)
+        fi
         novel_name=$(echo "$changed_file" | cut -d '/' -f 2)
         .github/scripts/build_rss.sh "$novel_name"
 
