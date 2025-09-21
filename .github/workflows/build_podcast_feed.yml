@@ -17,7 +17,7 @@ jobs:
         ref: pages
 
     - name: Make script executable
-      run: chmod +x .github/scripts/your-script.sh
+      run: chmod +x .github/scripts/build_rss.sh
 
     - name: Build RSS feed
       run: |
