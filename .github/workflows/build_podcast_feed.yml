@@ -16,6 +16,9 @@ jobs:
       with:
         ref: pages
 
+    - name: Make script executable
+      run: chmod +x .github/scripts/your-script.sh
+
     - name: Build RSS feed
       run: |
         # Find the novel name from the path of the changed file
