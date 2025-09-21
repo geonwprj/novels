@@ -1,6 +1,5 @@
 # Ignore generated files
 processing/*.json
-*/????.html
 .venv/
 .env
 __pycache__/
