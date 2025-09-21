@@ -1,0 +1,47 @@
+name: Create Podcast Episode
+
+on:
+  workflow_dispatch:
+    inputs:
+      novel_name:
+        description: 'The name of the novel to process'
+        required: true
+        type: string
+      chapter_index:
+        description: 'The chapter index to process'
+        required: true
+        type: string
+
+jobs:
+  create_episode:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout main branch
+      uses: actions/checkout@v3
+      with:
+        ref: main
+        path: main-repo
+
+    - name: Checkout pages branch
+      uses: actions/checkout@v3
+      with:
+        ref: pages
+        path: pages-repo
+
+    - name: Create episode
+      working-directory: pages-repo
+      run: |
+        ../main-repo/src/scripts/macos/create_episode.sh "${{ inputs.novel_name }}" ${{ inputs.chapter_index }}
+
+    - name: Configure Git
+      working-directory: pages-repo
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+
+    - name: Commit and push changes
+      working-directory: pages-repo
+      run: |
+        git add -A
+        git commit -m "Add episode ${{ inputs.chapter_index }} for ${{ inputs.novel_name }}" || echo "No changes to commit"
+        git push

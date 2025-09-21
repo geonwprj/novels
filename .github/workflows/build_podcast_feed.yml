@@ -1,0 +1,35 @@
+name: Build Podcast Feed
+
+on:
+  push:
+    branches:
+      - pages
+    paths:
+      - 'podcasts/**/*.xml'
+
+jobs:
+  build_feed:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout pages branch
+      uses: actions/checkout@v3
+      with:
+        ref: pages
+
+    - name: Build RSS feed
+      run: |
+        # Find the novel name from the path of the changed file
+        changed_file=$(git diff --name-only HEAD~1 HEAD | head -n 1)
+        novel_name=$(echo "$changed_file" | cut -d '/' -f 2)
+        .github/scripts/build_rss.sh "$novel_name"
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+
+    - name: Commit and push changes
+      run: |
+        git add -A
+        git commit -m "Update RSS feed for $novel_name" || echo "No changes to commit"
+        git push
