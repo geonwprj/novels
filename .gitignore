@@ -4,3 +4,6 @@ processing/*.json
 .env
 __pycache__/
 translate.sh
+test/
+test_translate.py
+/podcasts
